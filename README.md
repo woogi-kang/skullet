@@ -10,22 +10,45 @@ This is an unofficial Flutter port of [skullet](https://github.com/lochie/skulle
 
 ## Gallery
 
-Recorded from the [example app](example/) in Chrome. Each clip reloads the page's data with a 1.2 second delay.
+Recorded from the [example app](example/) in Chrome. Each clip reloads its screen's data, which takes 1.2 seconds to arrive.
 
 <table>
   <tr>
-    <td align="center"><img src="doc/gifs/sweep.gif" width="260" alt="Sweep reveal"><br><b>sweep</b>: one slanted front with a gloss band, shared across cards</td>
-    <td align="center"><img src="doc/gifs/smart.gif" width="260" alt="Smart reveal"><br><b>smart</b> (default): rows fade in from the top</td>
-    <td align="center"><img src="doc/gifs/sequence.gif" width="260" alt="Sequence reveal"><br><b>sequence</b>: piece after piece</td>
+    <td align="center" width="33%"><img src="doc/gifs/sweep.gif" width="240" alt="A feed uncovered by a slanted sweep"><br><b>sweep</b>: one slanted front with a gloss band, shared by every skeleton on screen</td>
+    <td align="center" width="33%"><img src="doc/gifs/smart.gif" width="240" alt="A feed fading in row by row"><br><b>smart</b> (default): rows fade in from the top</td>
+    <td align="center" width="33%"><img src="doc/gifs/sequence.gif" width="240" alt="A feed coming in piece by piece"><br><b>sequence</b>: piece after piece</td>
   </tr>
   <tr>
-    <td align="center"><img src="doc/gifs/pulse.gif" width="260" alt="Pulse animation"><br><b>pulse</b> instead of shimmer</td>
-    <td align="center"><img src="doc/gifs/dark.gif" width="260" alt="Dark mode"><br>Dark colours with a sweep</td>
-    <td align="center"><img src="doc/gifs/debug.gif" width="260" alt="Debug overlay"><br><b>debug</b>: where each skeleton's shape came from, and whether anything moved</td>
+    <td align="center"><img src="doc/gifs/dark.gif" width="240" alt="A dark album page uncovered by a sweep"><br>Dark colours, <b>sweep</b></td>
+    <td align="center"><img src="doc/gifs/pulse.gif" width="240" alt="A dark album page pulsing while it loads"><br><b>pulse</b> instead of shimmer</td>
+    <td align="center"><img src="doc/gifs/debug.gif" width="240" alt="Debug outlines around each skeleton"><br><b>debug</b>: where each skeleton's shape came from, and whether anything moved</td>
   </tr>
 </table>
 
-Images keep their skeleton until they finish loading, as in the photo row of each clip.
+The feed's pictures keep their own skeleton until they finish loading, after the text has come in.
+
+### Every option, side by side
+
+The example's **Options** tab shows one post under the settings you pick, replays the load on every change, and prints the `SkulletProvider` that gives it.
+
+<p align="center"><img src="doc/gifs/options.gif" width="300" alt="Changing the animation and reveal in the Options tab"></p>
+
+| Setting | Values | What changes |
+| --- | --- | --- |
+| `reveal` | `smart` (default), `together`, `sequence`, `sweep`, `instant` | How content replaces its skeleton. See [Reveals](#reveals). |
+| `theme.animation` | `shimmer` (default), `groupShimmer`, `pulse`, `none` | What the skeleton does while it waits. `shimmer` runs one highlight across the whole screen; `groupShimmer` runs it across each skeleton on its own. |
+| `theme.speed` | `slow` (default), `fast` | One shimmer pass takes 4 s or 2 s; one pulse 2.4 s or 1.2 s. |
+| `theme.light`, `theme.dark` | `SkeletonColors(base:, highlight:)` | The colour of the bones and of the highlight over them, for each brightness. |
+| `theme.radius` | 4 (default) | Corners of text bars. Images, chips and buttons keep their own. |
+| `mode` | `system` (default), `light`, `dark` | Which of the two palettes to use. |
+| `debug` | `false` (default) | Outlines each skeleton in blue, labelled with where its shape came from; green once the content fits its space, red if it didn't. |
+
+To try them yourself:
+
+```shell
+cd example
+flutter run -d chrome
+```
 
 ## Install
 
