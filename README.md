@@ -172,9 +172,10 @@ Pure Dart and Flutter, with no platform code.
 
 | Platform | Status |
 | --- | --- |
-| Unit and widget tests (Linux) | Verified: 17 geometry cases ported from skullet, 21 behaviour tests, golden images |
+| Unit and widget tests | Verified on Linux, macOS and Windows in CI: 17 geometry cases ported from skullet, 21 behaviour tests; golden images on Linux |
+| Oldest Flutter (3.32.0) | Verified in CI: analyze and tests |
 | Web (CanvasKit, Chromium) | Verified in headless Chromium: skeletons, sweep reveal, image skeletons |
-| Android, iOS, macOS, Windows, Linux desktop | Builds checked in CI; not yet run on devices |
+| Android, iOS, macOS, Windows, Linux desktop | The example app builds for each in CI; not yet run on devices |
 
 ## Limits
 
