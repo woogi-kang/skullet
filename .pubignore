@@ -10,6 +10,7 @@ example/.dart_tool/
 # Not needed by users of the package.
 test/goldens/
 doc/*.mp4
+doc/gifs/
 .github/
 .flutter-plugins-dependencies
 coverage/

@@ -6,7 +6,26 @@ Wrap what you would render once your data arrives. While it loads, skullet lays 
 
 This is an unofficial Flutter port of [skullet](https://github.com/lochie/skullet) by Lochie Axon, which does the same for React, Vue, Svelte and the DOM. It is not affiliated with the original project.
 
-![A skeleton sweeping into its content](https://raw.githubusercontent.com/woogi-kang/skullet/main/doc/sweep.gif)
+![A skeleton sweeping into its content](doc/sweep.gif)
+
+## Gallery
+
+Recorded from the [example app](example/) in Chrome. Each clip reloads the page's data with a 1.2 second delay.
+
+<table>
+  <tr>
+    <td align="center"><img src="doc/gifs/sweep.gif" width="260" alt="Sweep reveal"><br><b>sweep</b>: one slanted front with a gloss band, shared across cards</td>
+    <td align="center"><img src="doc/gifs/smart.gif" width="260" alt="Smart reveal"><br><b>smart</b> (default): rows fade in from the top</td>
+    <td align="center"><img src="doc/gifs/sequence.gif" width="260" alt="Sequence reveal"><br><b>sequence</b>: piece after piece</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="doc/gifs/pulse.gif" width="260" alt="Pulse animation"><br><b>pulse</b> instead of shimmer</td>
+    <td align="center"><img src="doc/gifs/dark.gif" width="260" alt="Dark mode"><br>Dark colours with a sweep</td>
+    <td align="center"><img src="doc/gifs/debug.gif" width="260" alt="Debug overlay"><br><b>debug</b>: where each skeleton's shape came from, and whether anything moved</td>
+  </tr>
+</table>
+
+Images keep their skeleton until they finish loading, as in the photo row of each clip.
 
 ## Install
 
