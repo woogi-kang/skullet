@@ -1,0 +1,17 @@
+# .pubignore replaces .gitignore for publishing, so repeat its entries.
+build/
+.dart_tool/
+.idea/
+*.iml
+.packages
+pubspec.lock
+example/build/
+example/.dart_tool/
+# Not needed by users of the package.
+test/goldens/
+doc/*.mp4
+.github/
+.flutter-plugins-dependencies
+coverage/
+*.log
+.DS_Store

@@ -1,0 +1,31 @@
+name: skullet
+description: >-
+  Skeletons measured from your real Flutter layout: a bar for every line of
+  text, a block for every image and control, revealed in place so nothing
+  moves. A Flutter port of skullet.
+version: 0.1.0
+repository: https://github.com/woogi-kang/skullet
+issue_tracker: https://github.com/woogi-kang/skullet/issues
+topics:
+  - skeleton
+  - loading
+  - shimmer
+  - placeholder
+  - animation
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+  flutter: ">=3.32.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+screenshots:
+  - description: A skeleton sweeping into its content.
+    path: doc/sweep.gif

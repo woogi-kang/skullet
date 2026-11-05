@@ -1,0 +1,21 @@
+name: skullet_example
+description: "Demo of skullet: skeletons measured from your real layout."
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: ^3.13.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  skullet:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
