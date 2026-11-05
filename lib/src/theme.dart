@@ -1,3 +1,5 @@
+import 'dart:ui' show Brightness;
+
 import 'package:flutter/widgets.dart';
 
 /// Colours of a skeleton.
