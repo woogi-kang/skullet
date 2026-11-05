@@ -1,3 +1,5 @@
+// Needed on Flutter 3.32, whose widgets library does not export it.
+// ignore: unnecessary_import
 import 'dart:ui' show Brightness;
 
 import 'package:flutter/widgets.dart';
