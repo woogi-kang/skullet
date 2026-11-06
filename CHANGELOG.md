@@ -1,4 +1,4 @@
-## 0.1.0 (unreleased)
+## 0.1.0
 
 First release: a Flutter port of [skullet](https://github.com/lochie/skullet).
 
