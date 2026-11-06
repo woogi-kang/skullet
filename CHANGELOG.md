@@ -10,4 +10,5 @@ First release: a Flutter port of [skullet](https://github.com/lochie/skullet).
 - Remembered shapes through a pluggable `ShapeStore`; `forgetShapes()` on sign-out.
 - Images still loading after a reveal keep a skeleton of their own until decoded.
 - Debug overlay and development warnings for skeletons that don't match their content.
+- `SkulletMode.system` follows the brightness the app shows, read from the surrounding text colour, rather than the platform's: a light-only app on a system in dark mode got the dark palette, white bones on a white page.
 - Under `flutter test`, skeletons hold still and reveals are instant, so `pumpAndSettle` settles.

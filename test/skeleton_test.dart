@@ -217,6 +217,53 @@ void main() {
     expect(revealed, 1);
   });
 
+  group('SkulletMode.system', () {
+    Widget app({required Brightness theme}) => MaterialApp(
+      theme: ThemeData(brightness: theme, fontFamily: 'Roboto'),
+      home: Scaffold(body: profile(null)),
+    );
+
+    SkeletonColors colorsDrawn(WidgetTester tester) =>
+        tester.widget<GhostLayer>(find.byType(GhostLayer)).colors;
+
+    testWidgets('a light app on a dark system gets light colours', (
+      tester,
+    ) async {
+      // macOS in Dark appearance, running an app that only has a light
+      // theme: the dark palette would be white bones on a white page.
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+      await tester.pumpWidget(app(theme: Brightness.light));
+      expect(colorsDrawn(tester), SkeletonColors.light);
+    });
+
+    testWidgets('a dark app on a light system gets dark colours', (
+      tester,
+    ) async {
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+      await tester.pumpWidget(app(theme: Brightness.dark));
+      expect(colorsDrawn(tester), SkeletonColors.dark);
+    });
+
+    testWidgets('with no text colour around, follows the platform', (
+      tester,
+    ) async {
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+      await tester.pumpWidget(
+        MediaQuery.fromView(
+          view: tester.view,
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: profile(null),
+          ),
+        ),
+      );
+      expect(colorsDrawn(tester), SkeletonColors.dark);
+    });
+  });
+
   group('with animations on', () {
     setUp(() => debugSkulletAnimateInTests = true);
     tearDown(() => debugSkulletAnimateInTests = false);

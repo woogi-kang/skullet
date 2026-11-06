@@ -40,7 +40,7 @@ The example's **Options** tab shows one post under the settings you pick, replay
 | `theme.speed` | `slow` (default), `fast` | One shimmer pass takes 4 s or 2 s; one pulse 2.4 s or 1.2 s. |
 | `theme.light`, `theme.dark` | `SkeletonColors(base:, highlight:)` | The colour of the bones and of the highlight over them, for each brightness. |
 | `theme.radius` | 4 (default) | Corners of text bars. Images, chips and buttons keep their own. |
-| `mode` | `system` (default), `light`, `dark` | Which of the two palettes to use. |
+| `mode` | `system` (default), `light`, `dark` | Which of the two palettes to use. `system` follows what the app shows where the skeleton is (light text means a dark surface), so an app with only a light theme stays light when the OS is in dark mode. |
 | `debug` | `false` (default) | Outlines each skeleton in blue, labelled with where its shape came from; green once the content fits its space, red if it didn't. |
 
 To try them yourself:

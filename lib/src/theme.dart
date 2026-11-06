@@ -70,7 +70,11 @@ enum SkulletMode {
   /// Dark colours.
   dark,
 
-  /// Follows the platform brightness.
+  /// Follows the brightness the app shows where the skeleton is, read from
+  /// the colour of the text around it: light text sits on a dark surface.
+  /// Falls back to the platform brightness when there is no text colour.
+  ///
+  /// An app with only a light theme stays light on a system in dark mode.
   system,
 }
 
@@ -197,10 +201,19 @@ class SkulletProvider extends InheritedWidget {
     SkulletMode.light => theme.light,
     SkulletMode.dark => theme.dark,
     SkulletMode.system =>
-      MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark
-          ? theme.dark
-          : theme.light,
+      _brightnessOf(context) == Brightness.dark ? theme.dark : theme.light,
   };
+
+  /// The brightness of what surrounds [context]. The platform's setting
+  /// alone isn't enough: an app without a dark theme stays light when the
+  /// system goes dark, and dark bones on it would be invisible.
+  static Brightness _brightnessOf(BuildContext context) {
+    final text = DefaultTextStyle.of(context).style.color;
+    if (text != null && text.a > 0) {
+      return text.computeLuminance() > 0.5 ? Brightness.dark : Brightness.light;
+    }
+    return MediaQuery.maybePlatformBrightnessOf(context) ?? Brightness.light;
+  }
 
   @override
   bool updateShouldNotify(SkulletProvider oldWidget) =>
