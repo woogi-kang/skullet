@@ -199,7 +199,7 @@ Pure Dart and Flutter, with no platform code.
 | Oldest Flutter (3.32.0) | Verified in CI: analyze and tests |
 | Web (CanvasKit, Chromium) | Verified in headless Chromium: skeletons, sweep reveal, image skeletons |
 | macOS | Run on macOS 26 (Apple silicon) in Dark appearance, with Skia and with Impeller: skeletons, every reveal, `pulse`, on each tab of the example, checked from frames captured inside the running app. With Xcode 27, `flutter build macos` needs Flutter 3.47 or newer |
-| iOS (simulator) | Run on an iPhone 17 Pro simulator (Impeller) in Dark appearance, with the same checks. With Xcode 27, `flutter build ios --simulator` needs Flutter 3.47 or newer. Not run on a physical device |
+| iOS (simulator) | Run on an iPhone 17 Pro simulator (Impeller) in Dark appearance, driven with simulator taps and checked from real screen captures: each tab, every reveal, `pulse`, holding the skeleton, and the debug outlines. With Xcode 27, `flutter build ios --simulator` needs Flutter 3.47 or newer. Not run on a physical device |
 | Android (emulator) | Run on an Android 15 (API 35) emulator (Impeller, OpenGL ES) in dark mode, driven with adb taps and checked from real screen captures: each tab, every reveal, `pulse`, holding the skeleton, and the debug outlines. The example's Android build uses AGP 9 and needs a recent Flutter (3.47 here). Not run on a physical device |
 | Windows, Linux desktop | The example app builds for each in CI; not yet run |
 

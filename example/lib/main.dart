@@ -120,6 +120,10 @@ class _DemoAppState extends State<DemoApp> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      // As tall as its choices, and scrolling on a short screen, rather than
+      // capped at the default 9/16 of the screen and overflowing.
+      isScrollControlled: true,
+      useSafeArea: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setSheet) {
           void update(VoidCallback change) {
@@ -127,7 +131,7 @@ class _DemoAppState extends State<DemoApp> {
             setSheet(() {});
           }
 
-          return Padding(
+          return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
             child: Column(
               mainAxisSize: MainAxisSize.min,

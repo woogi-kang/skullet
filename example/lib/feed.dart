@@ -130,6 +130,8 @@ const _placeholder = SlowImage(Art.hills, [
   Colors.grey,
 ], Duration.zero);
 
+/// Shaped like a typical page of the feed, three posts with two pictures, so
+/// the first load's skeleton takes the space the posts will.
 const samplePosts = [
   Post(
     name: 'Sample name',
@@ -142,11 +144,20 @@ const samplePosts = [
   ),
   Post(
     name: 'Sample name',
-    meta: '@handle · 5h',
+    meta: '@handle · 4h',
     avatar: Colors.grey,
-    text: 'A shorter post.',
+    text: 'A post of typical length, long enough to wrap onto a second line.',
     likes: '000',
     replies: '00',
+  ),
+  Post(
+    name: 'Sample name',
+    meta: '@handle · 5h',
+    avatar: Colors.grey,
+    text: 'A post of typical length, long enough to wrap onto a second line.',
+    likes: '000',
+    replies: '00',
+    picture: _placeholder,
   ),
 ];
 
