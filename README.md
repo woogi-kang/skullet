@@ -198,7 +198,9 @@ Pure Dart and Flutter, with no platform code.
 | Unit and widget tests | Verified on Linux, macOS and Windows in CI: 17 geometry cases ported from skullet, 21 behaviour tests; golden images on Linux |
 | Oldest Flutter (3.32.0) | Verified in CI: analyze and tests |
 | Web (CanvasKit, Chromium) | Verified in headless Chromium: skeletons, sweep reveal, image skeletons |
-| Android, iOS, macOS, Windows, Linux desktop | The example app builds for each in CI; not yet run on devices |
+| macOS | Run on macOS 26 (Apple silicon) in Dark appearance, with Skia and with Impeller: skeletons, every reveal, `pulse`, on each tab of the example, checked from frames captured inside the running app. With Xcode 27, `flutter build macos` needs Flutter 3.47 or newer |
+| iOS (simulator) | Run on an iPhone 17 Pro simulator (Impeller) in Dark appearance, with the same checks. With Xcode 27, `flutter build ios --simulator` needs Flutter 3.47 or newer. Not run on a physical device |
+| Android, Windows, Linux desktop | The example app builds for each in CI; not yet run on devices |
 
 ## Limits
 
