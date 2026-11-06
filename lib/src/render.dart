@@ -109,25 +109,20 @@ class RenderGhost extends RenderProxyBox with Shimmering {
   /// Creates it.
   RenderGhost({
     required this.element,
-    required this.theme,
-    required this.colors,
-    required this.still,
+    required SkulletTheme theme,
+    required SkeletonColors colors,
+    required bool still,
     required this.hold,
     required this.onMeasured,
     required this.debugLabel,
-  });
+  }) {
+    this.theme = theme;
+    this.colors = colors;
+    this.still = still;
+  }
 
   /// Its element, to measure the child from.
   final Element element;
-
-  @override
-  SkulletTheme theme;
-
-  @override
-  SkeletonColors colors;
-
-  @override
-  bool still;
 
   /// See [GhostLayer.hold].
   Duration hold;
@@ -149,6 +144,9 @@ class RenderGhost extends RenderProxyBox with Shimmering {
     super.performLayout();
     _shape = null; // Measured again on the next paint.
   }
+
+  @override
+  void textRadiusChanged() => _shape = null;
 
   @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
@@ -232,23 +230,18 @@ class RenderShapeLayer extends RenderBox with Shimmering {
   /// Creates it.
   RenderShapeLayer(
     this.shape,
-    this.theme,
-    this.colors,
-    this.still,
+    SkulletTheme theme,
+    SkeletonColors colors,
+    bool still,
     this.debugLabel,
-  );
+  ) {
+    this.theme = theme;
+    this.colors = colors;
+    this.still = still;
+  }
 
   /// The shape.
   SkeletonShape shape;
-
-  @override
-  SkulletTheme theme;
-
-  @override
-  SkeletonColors colors;
-
-  @override
-  bool still;
 
   /// For the debug overlay.
   String? debugLabel;
@@ -348,13 +341,17 @@ class RenderReveal extends RenderProxyBox with Shimmering {
     required this.skeleton,
     required this.mode,
     required this.revealContext,
-    required this.theme,
-    required this.colors,
-    required this.still,
+    required SkulletTheme theme,
+    required SkeletonColors colors,
+    required bool still,
     required this.onMeasured,
     required this.onRevealed,
     required this.debug,
-  });
+  }) {
+    this.theme = theme;
+    this.colors = colors;
+    this.still = still;
+  }
 
   /// Its element, to measure the content from.
   final Element element;
@@ -367,15 +364,6 @@ class RenderReveal extends RenderProxyBox with Shimmering {
 
   /// How it loaded.
   final RevealContext revealContext;
-
-  @override
-  SkulletTheme theme;
-
-  @override
-  SkeletonColors colors;
-
-  @override
-  bool still;
 
   /// See [RevealLayer.onMeasured].
   ValueChanged<SkeletonShape> onMeasured;

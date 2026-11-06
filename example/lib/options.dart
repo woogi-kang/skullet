@@ -83,10 +83,17 @@ class _OptionsPageState extends State<OptionsPage> {
     }
   }
 
-  /// Changes a setting and replays the load so the change shows.
+  /// Changes how content comes in, and replays the load to show it.
   void _set(VoidCallback change) {
     setState(change);
+    if (holding) setState(() => holding = false);
     _load();
+  }
+
+  /// Changes how the skeleton looks, and holds it on screen to show it.
+  void _look(VoidCallback change) {
+    setState(change);
+    if (!holding) _hold(true);
   }
 
   String get _code {
@@ -159,24 +166,27 @@ class _OptionsPageState extends State<OptionsPage> {
         const SizedBox(height: 20),
         _Choice(
           label: 'reveal',
-          help: 'How the content replaces the skeleton.',
+          help:
+              'How the content replaces the skeleton. Picking one plays the load.',
           values: RevealMode.values,
           value: reveal,
           onChanged: (v) => _set(() => reveal = v),
         ),
         _Choice(
           label: 'animation',
-          help: 'What the skeleton does while it waits.',
+          help:
+              'What the skeleton does while it waits. Picking one holds the '
+              'skeleton on screen so you can watch it.',
           values: SkeletonAnimation.values,
           value: animation,
-          onChanged: (v) => _set(() => animation = v),
+          onChanged: (v) => _look(() => animation = v),
         ),
         _Choice(
           label: 'speed',
           help: 'How fast the shimmer or pulse goes.',
           values: SkeletonSpeed.values,
           value: speed,
-          onChanged: (v) => _set(() => speed = v),
+          onChanged: (v) => _look(() => speed = v),
         ),
         _Choice(
           label: 'colours',
@@ -184,7 +194,7 @@ class _OptionsPageState extends State<OptionsPage> {
           values: _palettes,
           value: palette,
           name: (p) => p.name,
-          onChanged: (v) => _set(() => palette = v),
+          onChanged: (v) => _look(() => palette = v),
         ),
         Text('radius: ${radius.toStringAsFixed(0)}', style: _label(context)),
         Text('Corners of text bars.', style: _help(context)),
@@ -192,8 +202,7 @@ class _OptionsPageState extends State<OptionsPage> {
           value: radius,
           max: 12,
           divisions: 12,
-          onChanged: (v) => setState(() => radius = v),
-          onChangeEnd: (_) => _load(),
+          onChanged: (v) => _look(() => radius = v),
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,

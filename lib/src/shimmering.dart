@@ -10,15 +10,37 @@ import 'theme.dart';
 /// frame for itself only while something moves.
 mixin Shimmering on RenderBox {
   int? _callback;
+  SkulletTheme? _theme;
+  SkeletonColors? _colors;
+  bool _still = false;
 
   /// The theme to paint with.
-  SkulletTheme get theme;
+  SkulletTheme get theme => _theme!;
+  set theme(SkulletTheme value) {
+    final old = _theme;
+    _theme = value;
+    if (old != null && old.radius != value.radius) textRadiusChanged();
+    markNeedsPaint();
+  }
 
   /// Colours for the current brightness.
-  SkeletonColors get colors;
+  SkeletonColors get colors => _colors!;
+  set colors(SkeletonColors value) {
+    _colors = value;
+    markNeedsPaint();
+  }
 
   /// Holds the skeleton still.
-  bool get still;
+  bool get still => _still;
+  set still(bool value) {
+    if (value == _still) return;
+    _still = value;
+    markNeedsPaint();
+  }
+
+  /// Called when [theme] gives text bars new corners, so anything measured
+  /// with the old ones can be measured again.
+  void textRadiusChanged() {}
 
   @override
   void detach() {

@@ -121,10 +121,11 @@ class RenderSkeletonBox extends RenderBox with Shimmering {
     required SkeletonColors colors,
     required bool still,
   }) : _width = width,
-       _height = height,
-       _theme = theme,
-       _colors = colors,
-       _still = still;
+       _height = height {
+    this.theme = theme;
+    this.colors = colors;
+    this.still = still;
+  }
 
   double? _width;
   set width(double? value) {
@@ -142,30 +143,6 @@ class RenderSkeletonBox extends RenderBox with Shimmering {
 
   /// Corners.
   BorderRadius? radius;
-
-  SkulletTheme _theme;
-  @override
-  SkulletTheme get theme => _theme;
-  set theme(SkulletTheme value) {
-    _theme = value;
-    markNeedsPaint();
-  }
-
-  SkeletonColors _colors;
-  @override
-  SkeletonColors get colors => _colors;
-  set colors(SkeletonColors value) {
-    _colors = value;
-    markNeedsPaint();
-  }
-
-  bool _still;
-  @override
-  bool get still => _still;
-  set still(bool value) {
-    _still = value;
-    markNeedsPaint();
-  }
 
   @override
   Size computeDryLayout(BoxConstraints constraints) {

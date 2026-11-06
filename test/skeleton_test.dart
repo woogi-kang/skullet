@@ -400,4 +400,42 @@ void main() {
       expect(c.pieceDelay[2], isNull);
     });
   });
+
+  group('a changed theme reaches a skeleton already on screen', () {
+    setUp(() => debugSkulletAnimateInTests = true);
+    tearDown(() => debugSkulletAnimateInTests = false);
+
+    Widget themed(SkeletonAnimation animation, {double radius = 4}) =>
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: SkulletProvider(
+            theme: SkulletTheme(animation: animation, radius: radius),
+            child: Skeleton.child(
+              loading: true,
+              child: const Text('A line of sample text'),
+            ),
+          ),
+        );
+
+    testWidgets('from a still animation to a shimmer', (tester) async {
+      await tester.pumpWidget(themed(SkeletonAnimation.none));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      expect(tester.binding.hasScheduledFrame, isFalse);
+
+      await tester.pumpWidget(themed(SkeletonAnimation.shimmer));
+      expect(tester.binding.hasScheduledFrame, isTrue);
+    });
+
+    testWidgets('a new text radius is measured again', (tester) async {
+      await tester.pumpWidget(themed(SkeletonAnimation.none));
+      await tester.pump(const Duration(milliseconds: 300));
+      RenderGhost ghost() =>
+          tester.renderObject<RenderGhost>(find.byType(GhostLayer));
+      expect(ghost().shape!.bones.first.radius.topLeft.x, 4);
+
+      await tester.pumpWidget(themed(SkeletonAnimation.none, radius: 10));
+      expect(ghost().shape!.bones.first.radius.topLeft.x, 10);
+    });
+  });
 }
