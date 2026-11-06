@@ -8,6 +8,8 @@ This is an unofficial Flutter port of [skullet](https://github.com/lochie/skulle
 
 ![A skeleton sweeping into its content](doc/sweep.gif)
 
+**[Try the live demo](https://woogi-kang.github.io/skullet/)**: the example app built for the web. Reload any screen to watch it load again, and try each option on the Options tab. The URL can set where it starts, for example [`?tab=music&reveal=sweep&animation=pulse`](https://woogi-kang.github.io/skullet/?tab=music&reveal=sweep&animation=pulse).
+
 ## Gallery
 
 Recorded from the [example app](example/) in Chrome. Each clip reloads its screen's data, which takes 1.2 seconds to arrive.

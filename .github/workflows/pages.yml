@@ -1,9 +1,17 @@
 name: Web demo
 
-# Builds the example app for the web and publishes it with GitHub Pages.
-# Run by hand from the Actions tab; Pages must be set to "GitHub Actions"
-# in the repository's settings first.
+# Builds the example app for the web and publishes it with GitHub Pages,
+# whenever the package or the example changes on main, or by hand from the
+# Actions tab. Pages must be set to "GitHub Actions" in the repository's
+# settings first.
 on:
+  push:
+    branches: [main]
+    paths:
+      - lib/**
+      - example/**
+      - pubspec.yaml
+      - .github/workflows/pages.yml
   workflow_dispatch:
 
 permissions:
