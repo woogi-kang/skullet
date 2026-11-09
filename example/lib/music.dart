@@ -248,6 +248,8 @@ class TrackRow extends StatelessWidget {
               children: [
                 Text(
                   track.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,

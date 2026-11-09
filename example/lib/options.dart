@@ -150,17 +150,26 @@ class _OptionsPageState extends State<OptionsPage> {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
+        // Wraps onto two lines on a narrow phone.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 8,
           children: [
             FilledButton.tonalIcon(
               onPressed: _load,
               icon: const Icon(Icons.replay),
               label: const Text('Load again'),
             ),
-            const Spacer(),
-            const Text('Hold skeleton'),
-            const SizedBox(width: 8),
-            Switch(value: holding, onChanged: _hold),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Hold skeleton'),
+                const SizedBox(width: 8),
+                Switch(value: holding, onChanged: _hold),
+              ],
+            ),
           ],
         ),
         const SizedBox(height: 20),

@@ -46,4 +46,22 @@ void main() {
     );
     await tester.pump(const Duration(seconds: 3));
   });
+
+  // The smallest phones in use are about 320 logical pixels wide; an Android
+  // emulator in CI is one of them.
+  testWidgets('every tab fits a 320 wide phone', (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    Api.latency = const Duration(milliseconds: 80);
+    await tester.pumpWidget(const DemoApp());
+    for (final tab in ['Feed', 'Music', 'Options']) {
+      await tester.tap(find.text(tab));
+      // While loading, then loaded.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
+      expect(tester.takeException(), isNull, reason: tab);
+    }
+  });
 }
