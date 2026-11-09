@@ -41,7 +41,8 @@ The golden images in `test/goldens/` are rendered on Linux with the Flutter vers
 
 - Before 1.0, a minor version (0.x.0) may break the API; a patch (0.x.y) may not. The `api` job in CI compares the public API with the latest release on pub.dev and fails when a break isn't matched by the version.
 - Add a line under the unreleased version in `CHANGELOG.md` for anything a user would notice, and mark breaking changes **Breaking**.
-- Releases are published from a version tag by `.github/workflows/publish.yml`. Only the maintainer pushes tags.
+- Releases are published from a version tag by `.github/workflows/publish.yml`. Only the maintainer, or Claude Code when the maintainer asks it to, pushes tags.
+- `.claude/settings.json` lets Claude Code create a version tag or a GitHub release without asking for permission each time. It allows only those commands: `git tag -a v…`, pushing a `v…` tag, and the releases endpoint of this repository's API. Claude Code still releases only when the maintainer asks.
 
 ## Upstream
 

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git tag -a v*)",
+      "Bash(git push origin v*)",
+      "Bash(git push origin refs/tags/v*)",
+      "Bash(gh api repos/woogi-kang/skullet/releases *)"
+    ]
+  }
+}
