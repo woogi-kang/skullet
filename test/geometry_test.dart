@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:skullet/measure.dart';
 import 'package:skullet/skullet.dart';
 
 import 'geometry_cases.dart';
@@ -12,6 +13,13 @@ import 'geometry_cases.dart';
 const tolerance = 1.0;
 
 void main() {
+  // Images the cases decode stay in the image cache, which the leak tracker
+  // would otherwise count against the last test.
+  tearDown(() {
+    imageCache.clear();
+    imageCache.clearLiveImages();
+  });
+
   for (final c in geometryCases) {
     testWidgets('${c.label}: ${c.description}', (tester) async {
       await tester.pumpWidget(

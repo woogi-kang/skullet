@@ -14,8 +14,15 @@ import 'env_stub.dart' if (dart.library.io) 'env_io.dart';
 bool debugSkulletAnimateInTests = false;
 
 /// Whether skeletons should hold still and reveals be instant for [context].
+///
+/// They also hold still where tickers are off ([TickerMode]): a route behind
+/// another, a tab out of sight, or the content measured for a skeleton. A
+/// skeleton nobody can see shouldn't ask for frames.
 bool motionReduced(BuildContext context) {
   if (runningInFlutterTest && !debugSkulletAnimateInTests) return true;
+  // TickerMode.valuesOf replaces this from Flutter 3.35; 3.32 is supported.
+  // ignore: deprecated_member_use
+  if (!TickerMode.of(context)) return true;
   return MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 }
 

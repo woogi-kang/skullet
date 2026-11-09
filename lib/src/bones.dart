@@ -52,7 +52,7 @@ class Bone {
 
   /// The layout of this bone, without its decoration, for storing.
   Map<String, Object?> toJson() => {
-    'k': kind.index,
+    'k': kind.name,
     'r': [rect.left, rect.top, rect.width, rect.height],
     'c': [
       radius.topLeft.x,
@@ -73,7 +73,11 @@ class Bone {
     final r = numbers(json['r']);
     final c = numbers(json['c']);
     final u = json['u'] == null ? null : numbers(json['u']);
-    final kind = BoneKind.values[(json['k']! as num).toInt()];
+    final k = json['k'];
+    // 0.1.0 stored the kind's index; later versions its name.
+    final kind = k is num
+        ? BoneKind.values[k.toInt()]
+        : BoneKind.values.byName(k! as String);
     return Bone(
       kind,
       Rect.fromLTWH(r[0], r[1], r[2], r[3]),
@@ -119,15 +123,47 @@ class SkeletonShape {
   /// Its bones, in paint order.
   final List<Bone> bones;
 
+  /// The version of the format [toJson] writes. [fromJson] reads it and
+  /// every version before it.
+  static const int formatVersion = 1;
+
   /// The layout of this shape, for storing. Holds no text or media.
   Map<String, Object?> toJson() => {
+    'v': formatVersion,
     'w': size.width,
     'h': size.height,
     'b': [for (final bone in bones) bone.toJson()],
   };
 
-  /// Reads a shape written by [toJson].
-  static SkeletonShape fromJson(Map<String, Object?> json) => SkeletonShape(
+  /// Reads a shape written by [toJson], by this version or an earlier one.
+  ///
+  /// Throws a [FormatException] for anything else, such as a shape written by
+  /// a newer version after a downgrade; [tryFromJson] returns null instead,
+  /// and the skeleton is measured again.
+  static SkeletonShape fromJson(Map<String, Object?> json) {
+    final version = json['v'] ?? 0;
+    if (version is! int || version < 0 || version > formatVersion) {
+      throw FormatException('Unknown skullet shape format: $version');
+    }
+    try {
+      return _read(json);
+    } on FormatException {
+      rethrow;
+    } catch (error) {
+      throw FormatException('Malformed skullet shape: $error');
+    }
+  }
+
+  /// Reads a shape like [fromJson], or returns null if it can't.
+  static SkeletonShape? tryFromJson(Map<String, Object?> json) {
+    try {
+      return fromJson(json);
+    } on FormatException {
+      return null;
+    }
+  }
+
+  static SkeletonShape _read(Map<String, Object?> json) => SkeletonShape(
     Size((json['w']! as num).toDouble(), (json['h']! as num).toDouble()),
     [
       for (final bone in json['b']! as List)

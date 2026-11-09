@@ -97,7 +97,8 @@ class Cascade {
   /// Plans a cascade. [content] and [skeleton] bones are in the reveal's own
   /// coordinates; [screenTop] is the reveal's top on screen. [byRow] times
   /// whole rows by their place on screen, main text first (smart); otherwise
-  /// each piece goes by its place in the reveal (sequence).
+  /// each piece goes by its place in the reveal (sequence), reading across in
+  /// [textDirection].
   factory Cascade.plan({
     required List<Bone> content,
     required List<Bone> skeleton,
@@ -106,11 +107,15 @@ class Cascade {
     required double screenHeight,
     required bool byRow,
     Duration late = Duration.zero,
+    TextDirection textDirection = TextDirection.ltr,
   }) {
     Duration? at(Rect rect, Rect? unit, bool secondary) {
       if (!byRow) {
         final down = rect.top / math.max(size.height, 1);
-        final across = rect.left / math.max(size.width, 1);
+        final start = textDirection == TextDirection.rtl
+            ? size.width - rect.right
+            : rect.left;
+        final across = start / math.max(size.width, 1);
         return cascadeSpread * (down * 0.8 + across * 0.2).clamp(0, 1);
       }
       bool onScreen(Rect r) =>

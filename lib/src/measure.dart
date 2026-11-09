@@ -1,5 +1,7 @@
+import 'dart:developer' show Timeline;
 import 'dart:math' as math;
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -12,20 +14,35 @@ import 'hints.dart';
 ///
 /// [root] is the element of the content; it must be laid out. Bones are in
 /// the coordinates of its render box.
+///
+/// Corners given by direction (`BorderRadiusDirectional`) are read in the
+/// [Directionality] around [root].
 List<Bone> measureBones(Element root, {double textRadius = 4}) {
   final box = root.findRenderObject();
   if (box is! RenderBox || !box.hasSize) return const [];
-  return _Measure(box, textRadius).run(root);
+  final direction =
+      root.getInheritedWidgetOfExactType<Directionality>()?.textDirection ??
+      TextDirection.ltr;
+  Timeline.startSync('skullet: measure');
+  try {
+    return _Measure(box, textRadius, direction).run(root);
+  } finally {
+    Timeline.finishSync();
+  }
 }
 
 /// Text runs closer than this, in font sizes, are one label.
 const double _labelGap = 0.4;
 
 class _Measure {
-  _Measure(this.root, this.textRadius);
+  _Measure(this.root, this.textRadius, this.direction);
 
   final RenderBox root;
   final double textRadius;
+  final TextDirection direction;
+
+  /// How many children of each type every parent has, counted once.
+  final Map<Element, Map<Type, int>> _kinds = {};
   final List<Bone> bones = [];
   int _piece = 0;
 
@@ -95,7 +112,13 @@ class _Measure {
         widget is Radio ||
         widget is Slider ||
         widget is CircularProgressIndicator ||
-        widget is LinearProgressIndicator) {
+        widget is LinearProgressIndicator ||
+        widget is CupertinoSwitch ||
+        widget is CupertinoCheckbox ||
+        widget is CupertinoRadio ||
+        widget is CupertinoSlider ||
+        widget is CupertinoActivityIndicator ||
+        widget is CupertinoTextField) {
       final found = element.findRenderObject();
       if (found is RenderBox && found.hasSize && found.attached) {
         var rect = _rectOf(found);
@@ -110,10 +133,19 @@ class _Measure {
             height: size,
           );
           radius = BorderRadius.circular(size * 0.2);
-        } else if (widget is Switch || widget is Radio || widget is Checkbox) {
+        } else if (widget is Switch ||
+            widget is Radio ||
+            widget is Checkbox ||
+            widget is CupertinoSwitch ||
+            widget is CupertinoRadio ||
+            widget is CupertinoActivityIndicator) {
           radius = BorderRadius.circular(rect.shortestSide / 2);
+        } else if (widget is CupertinoCheckbox) {
+          radius = BorderRadius.circular(4);
         } else if (widget is InputDecorator) {
           radius = BorderRadius.circular(4);
+        } else if (widget is CupertinoTextField) {
+          radius = BorderRadius.circular(5);
         }
         _add(
           BoneKind.block,
@@ -139,7 +171,38 @@ class _Measure {
     }
 
     if (object is RenderParagraph) {
-      _lines(object, clip, unit);
+      _lines(
+        object,
+        object.text,
+        object.textScaler,
+        object.size,
+        object.getBoxesForSelection,
+        clip,
+        unit,
+      );
+      // Widgets inline in the text (a WidgetSpan) get their own bones.
+      if (object.childCount > 0) {
+        element.visitChildElements(
+          (child) => _visit(child, clip, clipRadius, unit),
+        );
+      }
+      return;
+    }
+
+    // Text that isn't a paragraph: SelectableText, a bare EditableText.
+    if (object is RenderEditable) {
+      final text = object.text;
+      if (text != null) {
+        _lines(
+          object,
+          text,
+          object.textScaler,
+          object.size,
+          object.getBoxesForSelection,
+          clip,
+          unit,
+        );
+      }
       return;
     }
 
@@ -163,7 +226,7 @@ class _Measure {
                   decoration: BoxDecoration(color: widget.color),
                 )
               : null)
-        : _paintOf(object);
+        : _paintOf(object, direction);
     if (paint != null) {
       final rect = _rectOf(element.findRenderObject()!);
       final labels = _labels(element);
@@ -205,12 +268,13 @@ class _Measure {
       if (object is RenderClipOval) {
         innerRadius = BorderRadius.circular(rect.shortestSide / 2);
       } else if (object is RenderClipRRect) {
-        innerRadius = object.borderRadius.resolve(TextDirection.ltr);
+        innerRadius = object.borderRadius.resolve(direction);
       } else if (object is RenderClipPath &&
           object.clipper is ShapeBorderClipper) {
         innerRadius = _radiusOfShape(
           (object.clipper! as ShapeBorderClipper).shape,
           rect,
+          direction,
         );
       }
     }
@@ -242,11 +306,15 @@ class _Measure {
   Rect? _unitOf(Element element) {
     final parent = _parentOf(element);
     if (parent == null) return null;
-    var alike = 0;
-    parent.visitChildElements((sibling) {
-      if (sibling.widget.runtimeType == element.widget.runtimeType) alike++;
+    final kinds = _kinds.putIfAbsent(parent, () {
+      final counts = <Type, int>{};
+      parent.visitChildElements((sibling) {
+        final type = sibling.widget.runtimeType;
+        counts[type] = (counts[type] ?? 0) + 1;
+      });
+      return counts;
     });
-    if (alike < 3) return null;
+    if ((kinds[element.widget.runtimeType] ?? 0) < 3) return null;
     final object = element.findRenderObject();
     if (object is! RenderBox || !object.hasSize || !object.attached) {
       return null;
@@ -263,18 +331,24 @@ class _Measure {
     return parent;
   }
 
-  void _lines(RenderParagraph paragraph, Rect? clip, Rect? unit) {
-    final text = paragraph.text.toPlainText(includeSemanticsLabels: false);
-    final fontSize = _fontSize(paragraph);
+  void _lines(
+    RenderBox paragraph,
+    InlineSpan span,
+    TextScaler scaler,
+    Size size,
+    List<TextBox> Function(TextSelection) boxesFor,
+    Rect? clip,
+    Rect? unit,
+  ) {
+    final text = span.toPlainText(includeSemanticsLabels: false);
+    final fontSize = _fontSizeOf(span, scaler);
     final own = _rectOf(paragraph);
     final shown = clip == null ? own : own.intersect(clip);
     final radius = BorderRadius.circular(textRadius);
     final piece = _piece++;
     if (text.trim().isEmpty) {
       // An empty text still stands for a line of it.
-      final width = paragraph.size.width > 0
-          ? paragraph.size.width * 0.6
-          : fontSize * 8;
+      final width = size.width > 0 ? size.width * 0.6 : fontSize * 8;
       final height = fontSize * 1.15;
       _add(
         BoneKind.text,
@@ -287,12 +361,12 @@ class _Measure {
       return;
     }
     // Tight boxes: each run from the font's ascent to its descent.
-    final boxes = paragraph.getBoxesForSelection(
+    final boxes = boxesFor(
       TextSelection(baseOffset: 0, extentOffset: text.length),
     );
     final lines = <Rect>[];
     for (final box in boxes) {
-      final rect = box.toRect().intersect(Offset.zero & paragraph.size);
+      final rect = box.toRect().intersect(Offset.zero & size);
       if (rect.width < 1 || rect.height < 1) continue;
       final i = lines.indexWhere(
         (line) =>
@@ -318,15 +392,18 @@ class _Measure {
     }
   }
 
-  double _fontSize(RenderParagraph paragraph) {
+  double _fontSize(RenderParagraph paragraph) =>
+      _fontSizeOf(paragraph.text, paragraph.textScaler);
+
+  double _fontSizeOf(InlineSpan text, TextScaler scaler) {
     double? size;
-    paragraph.text.visitChildren((span) {
+    text.visitChildren((span) {
       if (span is TextSpan && span.style?.fontSize != null) {
         size = math.max(size ?? 0, span.style!.fontSize!);
       }
       return true;
     });
-    return paragraph.textScaler.scale(size ?? 14);
+    return scaler.scale(size ?? 14);
   }
 
   /// Text labels and media under [element], counting text runs that sit
@@ -392,7 +469,7 @@ class _BoxPaint {
 }
 
 /// What a render object paints as a box, if anything.
-_BoxPaint? _paintOf(RenderObject? object) {
+_BoxPaint? _paintOf(RenderObject? object, TextDirection direction) {
   if (object is RenderDecoratedBox &&
       object.position == DecorationPosition.background) {
     final decoration = object.decoration;
@@ -411,8 +488,7 @@ _BoxPaint? _paintOf(RenderObject? object) {
       final size = (object as RenderBox).size;
       final radius = decoration.shape == BoxShape.circle
           ? BorderRadius.circular(size.shortestSide / 2)
-          : decoration.borderRadius?.resolve(TextDirection.ltr) ??
-                BorderRadius.zero;
+          : decoration.borderRadius?.resolve(direction) ?? BorderRadius.zero;
       return _BoxPaint(fills: fills, radius: radius, decoration: decoration);
     }
     if (decoration is ShapeDecoration) {
@@ -422,7 +498,7 @@ _BoxPaint? _paintOf(RenderObject? object) {
       final size = (object as RenderBox).size;
       return _BoxPaint(
         fills: fills,
-        radius: _radiusOfShape(decoration.shape, Offset.zero & size),
+        radius: _radiusOfShape(decoration.shape, Offset.zero & size, direction),
         decoration: decoration,
       );
     }
@@ -433,7 +509,7 @@ _BoxPaint? _paintOf(RenderObject? object) {
     final rect = Offset.zero & object.size;
     final clipper = object.clipper;
     final radius = clipper is ShapeBorderClipper
-        ? _radiusOfShape(clipper.shape, rect)
+        ? _radiusOfShape(clipper.shape, rect, direction)
         : BorderRadius.zero;
     final shape = clipper is ShapeBorderClipper
         ? clipper.shape
@@ -465,15 +541,19 @@ _BoxPaint? _paintOf(RenderObject? object) {
   return null;
 }
 
-BorderRadius _radiusOfShape(ShapeBorder shape, Rect rect) {
+BorderRadius _radiusOfShape(
+  ShapeBorder shape,
+  Rect rect,
+  TextDirection direction,
+) {
   if (shape is RoundedRectangleBorder) {
-    return shape.borderRadius.resolve(TextDirection.ltr);
+    return shape.borderRadius.resolve(direction);
   }
   if (shape is RoundedSuperellipseBorder) {
-    return shape.borderRadius.resolve(TextDirection.ltr);
+    return shape.borderRadius.resolve(direction);
   }
   if (shape is ContinuousRectangleBorder) {
-    return shape.borderRadius.resolve(TextDirection.ltr);
+    return shape.borderRadius.resolve(direction);
   }
   if (shape is StadiumBorder || shape is CircleBorder) {
     return BorderRadius.circular(rect.shortestSide / 2);

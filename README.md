@@ -92,14 +92,19 @@ Or toggle it yourself; the child is measured as it is:
 Skeleton.child(loading: isLoading, child: ProfileCard(user: user))
 ```
 
-Or hand it a future:
+Or hand it a future. Create the future once, in `initState`, not in `build`: a future made in `build` fetches again on every rebuild.
 
 ```dart
-FutureSkeleton<User>(
-  future: api.fetchUser(),
-  sample: sampleUser,
-  builder: (context, user) => ProfileCard(user: user),
-)
+class _ProfilePageState extends State<ProfilePage> {
+  late final Future<User> _user = api.fetchUser();
+
+  @override
+  Widget build(BuildContext context) => FutureSkeleton<User>(
+    future: _user,
+    sample: sampleUser,
+    builder: (context, user) => ProfileCard(user: user),
+  );
+}
 ```
 
 | `Skeleton` | Type | |
@@ -107,9 +112,9 @@ FutureSkeleton<User>(
 | `data` | `T?` | Loading while null; passed to `builder` once set. |
 | `builder` | `(BuildContext, T) → Widget` | Builds the content. |
 | `sample` | `T?` | Stands in for `data` to draw the first skeleton. |
-| `loading` | `bool` | Shows the skeleton even over `data`, say while refetching. |
+| `loading` | `bool` | Shows the skeleton even over `data`, say while refetching. The content keeps its state (scroll offsets, text being typed) underneath. |
 | `id` | `String?` | Remembers the shape under this key. |
-| `label` | `String?` | Read to screen readers while loading. |
+| `label` | `String?` | Read to screen readers while loading; the provider's `label` if left out. |
 | `skeleton` | `Widget?` | Shown while loading instead of the measured skeleton. |
 | `error` | `Widget?` | Shown in place of the content when set. |
 | `empty`, `emptyMessage` | `bool`, `Widget?` | Shows `emptyMessage` in place of the content. |
@@ -126,11 +131,14 @@ skullet uses the best it has, in this order:
 4. Your `sample`.
 5. A few generic lines, with a warning in debug builds.
 
-Remembered shapes keep layout, never content. By default they live in memory; to keep them across launches, set `Skullet.store` to your own `ShapeStore` and save `SkeletonShape.toJson()` (it holds only rectangles). Clear them on sign-out:
+Remembered shapes keep layout, never content. They are kept per text scale and screen width (to the nearest 40 logical pixels), so a phone turned on its side measures afresh. By default they live in memory; to keep them across launches, set `Skullet.store` (or a provider's `store`) to your own `ShapeStore` and save `SkeletonShape.toJson()` (it holds only rectangles). Read them back with `SkeletonShape.tryFromJson`, which returns null for a shape it can't read, such as one written by a newer version, so the skeleton is measured again. Clear them on sign-out:
 
 ```dart
-forgetShapes();
+forgetShapes(); // Skullet.store and the data last shown
+myAccountStore.clear(); // a store you gave a provider
 ```
+
+The data last shown is kept in memory for the 64 ids shown most recently (`Skullet.lastDataLimit`).
 
 ## Provider and theme
 
@@ -146,9 +154,24 @@ SkulletProvider(
     radius: 4, // lines of text; images and chips keep their own
   ),
   debug: false,
+  label: 'Loading', // read for skeletons without a label; localise it
+  store: accountShapes, // where shapes are remembered; Skullet.store if null
   child: MyApp(),
 )
 ```
+
+Or put the theme with the rest of yours, where it blends as the theme changes. A provider's theme wins over it:
+
+```dart
+MaterialApp(
+  theme: ThemeData(extensions: const [SkulletTheme(radius: 6)]),
+  darkTheme: ThemeData.dark().copyWith(
+    extensions: const [SkulletTheme(animation: SkeletonAnimation.pulse)],
+  ),
+)
+```
+
+`SkulletMode.system` follows the brightness of the page the skeleton is on (read from the text colour around it), not the operating system's. Under high contrast (`MediaQuery.highContrast`) the fill is twice as strong.
 
 Every skeleton on screen shares one shimmer, timed by the frame clock and placed by its position on screen, however late it mounts.
 
@@ -162,13 +185,15 @@ How content replaces its skeleton:
 - `sweep` uncovers the content behind a slanted front at the shimmer's angle, with a gloss that lifts only the content's text and images. Reveals that land together share one front. It turns into a crossfade for anything over 1.5 screens, or if frames drop.
 - `instant` swaps at once.
 
-Under reduced motion (`MediaQuery.disableAnimations`), skeletons hold still and every reveal is instant. If the content turns out taller or shorter than its skeleton, the height eases over 280 ms rather than snapping.
+Under reduced motion (`MediaQuery.disableAnimations`), skeletons hold still and every reveal is instant. So do skeletons where tickers are off (`TickerMode`): on a route behind another or a tab out of sight, they ask for no frames.
+
+A sequence reads across in the text direction, right to left in an RTL app. The sweep and the shimmer keep their slant in both directions. If the content turns out taller or shorter than its skeleton, the height eases over 280 ms rather than snapping.
 
 Images never hold a reveal back: each one still loading keeps a skeleton of its own until it has decoded, then fades in. Give images a size (`width` and `height`, or an `AspectRatio`); one that only gets a size on load moves when it does, and a debug warning says so.
 
 ## Hints
 
-Measuring gets most layouts right: text, `Image`, `Icon`, buttons, chips, `Card`s, text fields, switches. Where it doesn't, mark the widget:
+Measuring gets most layouts right: text (including `SelectableText` and widgets inline in text), `Image`, `Icon`, buttons, chips, `Card`s, text fields, switches, and their Cupertino counterparts. Corners given by direction follow the text direction. Where it doesn't, mark the widget:
 
 ```dart
 SkeletonBlock(child: Logo())          // one block
@@ -181,6 +206,16 @@ SkeletonReplace(                      // measured in its place
 
 `SkeletonBox` is a placeholder box that joins the shared shimmer and follows the theme.
 
+### The sample is built for real
+
+skullet builds your `sample` to measure it, unseen. It can't be focused, its animations and heroes are switched off, and it ignores taps, but anything its widgets do when built still happens: an `Image.network` in it downloads, and a widget that fetches in `initState` fetches. Keep samples to plain data, or check `SkeletonScope.inSkeleton(context)` and skip the work:
+
+```dart
+SkeletonScope.inSkeleton(context)
+    ? const SizedBox(width: 48, height: 48)
+    : Image.network(user.avatarUrl, width: 48, height: 48)
+```
+
 ## Debugging
 
 Set `debug: true` on the provider. Every skeleton is outlined in blue with where its shape came from; once revealed, green if nothing moved, red with how far the content moved. Debug builds also print a warning when a skeleton and its content differ in height, when an image has no size, and when there is nothing to measure.
@@ -189,21 +224,27 @@ Set `debug: true` on the provider. Every skeleton is outlined in blue with where
 
 Under `flutter test`, skeletons hold still and every reveal is instant, so `pumpAndSettle` settles and content is in the tree as soon as its data is. Set `debugSkulletAnimateInTests = true` to test the animations themselves.
 
+In the browser (`flutter test --platform chrome`) there is no environment to tell a test from an app, so add `--dart-define=SKULLET_TEST=true`.
+
 While loading, the sample's text is in the tree inside the skeleton (excluded from semantics). Find content by semantics or after the reveal rather than by text during loading.
 
 ## Platforms
 
 Pure Dart and Flutter, with no platform code.
 
-| Platform | Status |
-| --- | --- |
-| Unit and widget tests | Verified on Linux, macOS and Windows in CI: 17 geometry cases ported from skullet, 21 behaviour tests; golden images on Linux |
-| Oldest Flutter (3.32.0) | Verified in CI: analyze and tests |
-| Web (CanvasKit, Chromium) | Verified in headless Chromium: skeletons, sweep reveal, image skeletons |
-| macOS | Run on macOS 26 (Apple silicon) in Dark appearance, with Skia and with Impeller: skeletons, every reveal, `pulse`, on each tab of the example, checked from frames captured inside the running app. With Xcode 27, `flutter build macos` needs Flutter 3.47 or newer |
-| iOS (simulator) | Run on an iPhone 17 Pro simulator (Impeller) in Dark appearance, driven with simulator taps and checked from real screen captures: each tab, every reveal, `pulse`, holding the skeleton, and the debug outlines. With Xcode 27, `flutter build ios --simulator` needs Flutter 3.47 or newer. Not run on a physical device |
-| Android (emulator) | Run on an Android 15 (API 35) emulator (Impeller, OpenGL ES) in dark mode, driven with adb taps and checked from real screen captures: each tab, every reveal, `pulse`, holding the skeleton, and the debug outlines. The example's Android build uses AGP 9 and needs a recent Flutter (3.47 here). Not run on a physical device |
-| Windows, Linux desktop | The example app builds for each in CI; not yet run |
+Every pull request runs the integration tests in [`example/integration_test`](example/integration_test) on each platform in CI. They check, on that platform's own renderer, that skeletons paint (by reading back the pixels of their layer) in the palette that matches the page, that every reveal runs to its end and paints the content, that the example loads on each tab, and they report frame timings for a screen of 40 skeletons.
+
+| Platform | In CI on every pull request | Run by hand |
+| --- | --- | --- |
+| Unit and widget tests | Linux, macOS, Windows and Chrome: 17 geometry cases ported from skullet and behaviour tests, with leak tracking; golden images on Linux with a pinned Flutter | |
+| Oldest Flutter (3.32.0) | Analyze and unit tests | |
+| Android | Integration tests on an API 34 emulator | 0.1.0 on an Android 15 emulator, dark mode: each tab, every reveal, `pulse`, debug outlines. The example's AGP 9 build needs a recent Flutter |
+| iOS | Integration tests on an iPhone simulator | 0.1.0 on an iPhone 17 Pro simulator (Impeller), Dark appearance. With Xcode 27, building needs Flutter 3.47 or newer |
+| macOS | Integration tests | 0.1.0 on macOS 26 (Apple silicon), Dark appearance, with Skia and with Impeller |
+| Windows, Linux desktop | Integration tests (Linux under Xvfb) | |
+| Web | Integration tests in Chrome | 0.1.0 in headless Chromium |
+
+No physical phone or tablet has run it yet.
 
 ## Limits
 
@@ -212,6 +253,17 @@ Pure Dart and Flutter, with no platform code.
 - Text bars run from the font's ascent to its descent. skullet's cap-height and x-height options are not ported: Flutter doesn't expose those metrics.
 - Remembered shapes are keyed by `id` and text scale. A shape from a different width is drawn as remembered until the content is measured again.
 - The web version's server rendering, CSP nonce, CSS variables and web component have no Flutter equivalent and are not ported.
+
+## skullet and skeletonizer
+
+[skeletonizer](https://pub.dev/packages/skeletonizer) is the established package for skeletons drawn from real widgets, and the better pick if you want its effects, its control over individual widgets, or a large community. skullet is narrower: it measures the layout into bones it can remember by id, so a reload is exact without a sample, and it reveals content with timing that follows the load (`smart`) or a slanted `sweep`.
+
+Both export a `Skeleton` class. To use them in one app, hide one:
+
+```dart
+import 'package:skeletonizer/skeletonizer.dart' hide Skeleton;
+import 'package:skullet/skullet.dart';
+```
 
 ## License
 

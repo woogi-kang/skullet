@@ -1,0 +1,59 @@
+name: Bug report
+description: A skeleton that looks wrong, doesn't show, or doesn't match its content.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Smallest code that shows it
+      description: A widget we can paste into the example app. Remove anything private.
+      render: dart
+    validations:
+      required: true
+  - type: textarea
+    id: debug
+    attributes:
+      label: Screenshot with debug outlines
+      description: Set `SkulletProvider(debug: true)` and attach a screenshot. The outline says where the skeleton's shape came from and whether the content moved.
+  - type: input
+    id: flutter
+    attributes:
+      label: flutter --version
+      placeholder: Flutter 3.47.9 • channel stable
+    validations:
+      required: true
+  - type: input
+    id: skullet
+    attributes:
+      label: skullet version
+      placeholder: 0.2.0
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      multiple: true
+      options: [Android, iOS, macOS, Windows, Linux, Web]
+    validations:
+      required: true
+  - type: dropdown
+    id: renderer
+    attributes:
+      label: Renderer
+      options: [Impeller, Skia, "Web (CanvasKit or Skwasm)", Don't know]
+  - type: checkboxes
+    id: settings
+    attributes:
+      label: Settings that change how skeletons behave
+      options:
+        - label: Reduce motion (or "remove animations") is on
+        - label: The system is in dark mode
+        - label: Text is scaled up or down

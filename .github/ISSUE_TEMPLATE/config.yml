@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: The original skullet (React, Vue, Svelte, DOM)
+    url: https://github.com/lochie/skullet
+    about: This is an unofficial Flutter port. Questions about the web version belong there.
