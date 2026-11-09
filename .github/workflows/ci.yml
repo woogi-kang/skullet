@@ -194,7 +194,7 @@ jobs:
       # A chromedriver for the Chrome already on the runner: flutter drive
       # starts that Chrome, so the two versions have to match.
       - if: matrix.target == 'web'
-        uses: nanasess/setup-chromedriver@v2
+        uses: nanasess/setup-chromedriver@v3
       - if: matrix.target == 'web'
         run: |
           chromedriver --port=4444 &
