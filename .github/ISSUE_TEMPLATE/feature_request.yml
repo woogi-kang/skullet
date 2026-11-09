@@ -1,0 +1,16 @@
+name: Feature request
+description: Something skullet should measure, reveal or support.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are building and where skullet falls short. A real case helps most.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you'd like
+      description: The API or behaviour you have in mind, if any.
