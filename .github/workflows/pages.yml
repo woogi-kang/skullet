@@ -34,7 +34,7 @@ jobs:
       - name: Build
         working-directory: example
         run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: example/build/web
 
