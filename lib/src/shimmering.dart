@@ -38,6 +38,11 @@ mixin Shimmering on RenderBox {
     markNeedsPaint();
   }
 
+  /// Its own layer: a shimmer repaints every frame, and without one the
+  /// whole screen around it would be painted again with it.
+  @override
+  bool get isRepaintBoundary => true;
+
   /// Called when [theme] gives text bars new corners, so anything measured
   /// with the old ones can be measured again.
   void textRadiusChanged() {}

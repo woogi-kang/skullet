@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:skullet/measure.dart';
 import 'package:skullet/skullet.dart';
 import 'package:skullet/src/environment.dart' show InputTracker;
 import 'package:skullet/src/plan.dart';

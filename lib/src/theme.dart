@@ -2,7 +2,9 @@
 // ignore: unnecessary_import
 import 'dart:ui' show Brightness;
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
+
+import 'shapes.dart';
 
 /// Colours of a skeleton.
 @immutable
@@ -27,6 +29,20 @@ class SkeletonColors {
 
   /// The highlight sweeping across it.
   final Color highlight;
+
+  /// Colours for high contrast ([MediaQuery.highContrast]): the fill twice as
+  /// strong, so the outline of what is loading can be made out.
+  SkeletonColors get highContrast => SkeletonColors(
+    base: base.withValues(alpha: (base.a * 2).clamp(0.0, 1.0)),
+    highlight: highlight,
+  );
+
+  /// Blends [a] into [b].
+  static SkeletonColors lerp(SkeletonColors a, SkeletonColors b, double t) =>
+      SkeletonColors(
+        base: Color.lerp(a.base, b.base, t)!,
+        highlight: Color.lerp(a.highlight, b.highlight, t)!,
+      );
 
   @override
   bool operator ==(Object other) =>
@@ -99,8 +115,22 @@ enum RevealMode {
 }
 
 /// How skeletons look and move.
+///
+/// Give it to a [SkulletProvider], or set it alongside the rest of your
+/// theme, where it blends when the theme changes:
+///
+/// ```dart
+/// MaterialApp(
+///   theme: ThemeData(extensions: const [SkulletTheme(radius: 6)]),
+///   darkTheme: ThemeData.dark().copyWith(
+///     extensions: const [SkulletTheme(animation: SkeletonAnimation.pulse)],
+///   ),
+/// )
+/// ```
+///
+/// A provider's theme wins over the one in [ThemeData.extensions].
 @immutable
-class SkulletTheme {
+class SkulletTheme extends ThemeExtension<SkulletTheme> {
   /// Creates a theme.
   const SkulletTheme({
     this.light = SkeletonColors.light,
@@ -139,6 +169,7 @@ class SkulletTheme {
   };
 
   /// A copy with the given fields replaced.
+  @override
   SkulletTheme copyWith({
     SkeletonColors? light,
     SkeletonColors? dark,
@@ -152,6 +183,19 @@ class SkulletTheme {
     speed: speed ?? this.speed,
     radius: radius ?? this.radius,
   );
+
+  /// Blends colours and corners; the animation and speed switch halfway.
+  @override
+  SkulletTheme lerp(covariant SkulletTheme? other, double t) {
+    if (other == null) return this;
+    return SkulletTheme(
+      light: SkeletonColors.lerp(light, other.light, t),
+      dark: SkeletonColors.lerp(dark, other.dark, t),
+      animation: t < 0.5 ? animation : other.animation,
+      speed: t < 0.5 ? speed : other.speed,
+      radius: radius + (other.radius - radius) * t,
+    );
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -175,6 +219,8 @@ class SkulletProvider extends InheritedWidget {
     this.mode = SkulletMode.system,
     this.reveal = RevealMode.smart,
     this.debug = false,
+    this.store,
+    this.label,
     required super.child,
   });
 
@@ -191,18 +237,39 @@ class SkulletProvider extends InheritedWidget {
   /// the content moved anything when it arrived.
   final bool debug;
 
-  /// The nearest provider's settings, or the defaults.
-  static SkulletProvider of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<SkulletProvider>() ??
-      const SkulletProvider(child: SizedBox.shrink());
+  /// Where skeletons below remember their shapes; [Skullet.store] when
+  /// null. Give each signed-in account, or each test, a store of its own.
+  final ShapeStore? store;
 
-  /// The colours for [context], following [mode].
-  SkeletonColors colorsOf(BuildContext context) => switch (mode) {
-    SkulletMode.light => theme.light,
-    SkulletMode.dark => theme.dark,
-    SkulletMode.system =>
-      _brightnessOf(context) == Brightness.dark ? theme.dark : theme.light,
-  };
+  /// Read to screen readers for a skeleton that has no label of its own,
+  /// such as a localised "Loading". Nothing is read when both are null.
+  final String? label;
+
+  /// The nearest provider's settings. Without one, the defaults, with the
+  /// [SkulletTheme] in [ThemeData.extensions] if there is one.
+  static SkulletProvider of(BuildContext context) {
+    final provider = context
+        .dependOnInheritedWidgetOfExactType<SkulletProvider>();
+    if (provider != null) return provider;
+    final theme = Theme.of(context).extension<SkulletTheme>();
+    return theme == null
+        ? const SkulletProvider(child: SizedBox.shrink())
+        : SkulletProvider(theme: theme, child: const SizedBox.shrink());
+  }
+
+  /// The colours for [context], following [mode], stronger under high
+  /// contrast.
+  SkeletonColors colorsOf(BuildContext context) {
+    final colors = switch (mode) {
+      SkulletMode.light => theme.light,
+      SkulletMode.dark => theme.dark,
+      SkulletMode.system =>
+        _brightnessOf(context) == Brightness.dark ? theme.dark : theme.light,
+    };
+    return (MediaQuery.maybeHighContrastOf(context) ?? false)
+        ? colors.highContrast
+        : colors;
+  }
 
   /// The brightness of what surrounds [context]. The platform's setting
   /// alone isn't enough: an app without a dark theme stays light when the
@@ -220,5 +287,7 @@ class SkulletProvider extends InheritedWidget {
       theme != oldWidget.theme ||
       mode != oldWidget.mode ||
       reveal != oldWidget.reveal ||
-      debug != oldWidget.debug;
+      debug != oldWidget.debug ||
+      store != oldWidget.store ||
+      label != oldWidget.label;
 }

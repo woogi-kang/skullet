@@ -1,9 +1,12 @@
 /// Skeletons measured from your real Flutter layout, revealed in place.
 ///
 /// An unofficial Flutter port of skullet by Lochie Axon.
+///
+/// The measurement itself (`measureBones`, `Bone`, `BoneKind`) is in
+/// `package:skullet/measure.dart`, for tools and tests that need it.
 library;
 
-export 'src/bones.dart' show Bone, BoneKind, SkeletonShape;
+export 'src/bones.dart' show SkeletonShape;
 export 'src/environment.dart' show debugSkulletAnimateInTests;
 export 'src/hints.dart'
     show
@@ -12,7 +15,6 @@ export 'src/hints.dart'
         SkeletonIgnore,
         SkeletonReplace,
         SkeletonScope;
-export 'src/measure.dart' show measureBones;
 export 'src/shapes.dart'
     show MemoryShapeStore, ShapeStore, Skullet, forgetShapes;
 export 'src/skeleton.dart' show FutureSkeleton, Skeleton, SkeletonBuilder;

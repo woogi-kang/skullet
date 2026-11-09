@@ -72,10 +72,12 @@ class Skeleton<T extends Object> extends StatefulWidget {
   final bool loading;
 
   /// Remembers the skeleton's shape under this key, so the next load is
-  /// exact without a [sample].
+  /// exact without a [sample]. Shapes are kept per text scale and screen
+  /// width, so a phone turned on its side measures afresh.
   final String? id;
 
-  /// Read to screen readers while loading.
+  /// Read to screen readers while loading; the provider's
+  /// [SkulletProvider.label] when left out.
   final String? label;
 
   /// Shown while loading instead of the measured skeleton.
@@ -119,6 +121,11 @@ class _SkeletonState<T extends Object> extends State<Skeleton<T>> {
 
   bool get _loading => widget.data == null || widget.loading;
 
+  /// Keeps the content's state (scroll offsets, text being typed, tiles
+  /// opened) while a refetch draws its skeleton over it: the content moves
+  /// under the skeleton and back rather than being built again.
+  final GlobalKey _content = GlobalKey(debugLabel: 'skullet content');
+
   @override
   void initState() {
     super.initState();
@@ -153,8 +160,7 @@ class _SkeletonState<T extends Object> extends State<Skeleton<T>> {
   String? get _storeKey {
     final id = widget.id;
     if (id == null) return null;
-    final scale = MediaQuery.maybeTextScalerOf(context)?.scale(14) ?? 14;
-    return '$id@${scale.toStringAsFixed(1)}';
+    return shapeKey(id, context);
   }
 
   void _measured(SkeletonShape shape) => _shown = shape;
@@ -163,9 +169,11 @@ class _SkeletonState<T extends Object> extends State<Skeleton<T>> {
     final key = _storeKey;
     final data = widget.data;
     if (key == null || data == null || widget.empty) return;
-    Skullet.store.write(key, shape);
-    Skullet.lastData[widget.id!] = data;
+    _store.write(key, shape);
+    Skullet.remember(widget.id!, data);
   }
+
+  ShapeStore get _store => SkulletProvider.of(context).store ?? Skullet.store;
 
   void _revealed() {
     if (mounted) widget.onReveal?.call();
@@ -187,7 +195,7 @@ class _SkeletonState<T extends Object> extends State<Skeleton<T>> {
       final data = widget.data as T;
       final content = widget.empty
           ? (widget.emptyMessage ?? widget.builder(context, data))
-          : widget.builder(context, data);
+          : KeyedSubtree(key: _content, child: widget.builder(context, data));
       child = RevealLayer(
         key: ValueKey(_reveals),
         skeleton: _reveals == 0 ? null : _shown,
@@ -202,6 +210,8 @@ class _SkeletonState<T extends Object> extends State<Skeleton<T>> {
         child: content,
       );
     }
+    // Content keeps its state through this switch: it sits under a global
+    // key.
     if (still) return child;
     // A skeleton drawn from old data might not match the new data's height:
     // ease to it rather than snap.
@@ -232,7 +242,7 @@ class _SkeletonState<T extends Object> extends State<Skeleton<T>> {
       final id = widget.id;
       final last = id == null ? null : Skullet.lastData[id];
       final key = _storeKey;
-      final remembered = key == null ? null : Skullet.store.read(key);
+      final remembered = key == null ? null : _store.read(key);
       T? source;
       String label;
       if (widget.data != null) {
@@ -260,6 +270,7 @@ class _SkeletonState<T extends Object> extends State<Skeleton<T>> {
       }
       final debugLabel = provider.debug ? label : null;
       if (source != null) {
+        final built = widget.builder(context, source);
         ghost = GhostLayer(
           key: const ValueKey('ghost'),
           theme: provider.theme,
@@ -268,7 +279,11 @@ class _SkeletonState<T extends Object> extends State<Skeleton<T>> {
           hold: hold,
           onMeasured: _measured,
           debugLabel: debugLabel,
-          child: SkeletonScope(child: widget.builder(context, source)),
+          child: _Hidden(
+            child: identical(source, widget.data)
+                ? KeyedSubtree(key: _content, child: built)
+                : built,
+          ),
         );
       } else if (remembered != null) {
         _shown = remembered;
@@ -289,17 +304,42 @@ class _SkeletonState<T extends Object> extends State<Skeleton<T>> {
           hold: hold,
           onMeasured: _measured,
           debugLabel: debugLabel,
-          child: const _Fallback(),
+          child: const _Hidden(child: _Fallback()),
         );
       }
     }
     return Semantics(
       key: const ValueKey('loading'),
       container: true,
-      label: widget.label,
+      label: widget.label ?? provider.label,
       child: ExcludeSemantics(child: IgnorePointer(child: ghost)),
     );
   }
+}
+
+/// Content laid out only to be measured: nobody sees it, so it can't take
+/// focus, run animations or fly as a hero, and it knows it is a skeleton.
+class _Hidden extends StatelessWidget {
+  const _Hidden({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ExcludeFocus(
+    child: TickerMode(
+      enabled: false,
+      child: HeroMode(enabled: false, child: SkeletonScope(child: child)),
+    ),
+  );
+}
+
+/// The key a shape is remembered under: its id, the text scale and the
+/// screen width to the nearest 40 logical pixels. A shape from a phone held
+/// upright doesn't fit the same phone on its side.
+String shapeKey(String id, BuildContext context) {
+  final scale = MediaQuery.maybeTextScalerOf(context)?.scale(14) ?? 14;
+  final width = MediaQuery.maybeSizeOf(context)?.width ?? 0;
+  return '$id@${scale.toStringAsFixed(1)}@${(width / 40).round() * 40}';
 }
 
 /// A few generic lines, when there is nothing to measure.
@@ -340,6 +380,8 @@ class FutureSkeleton<T extends Object> extends StatelessWidget {
     this.id,
     this.label,
     this.errorBuilder,
+    this.skeleton,
+    this.reveal,
     this.onReveal,
   });
 
@@ -358,8 +400,15 @@ class FutureSkeleton<T extends Object> extends StatelessWidget {
   /// See [Skeleton.label].
   final String? label;
 
-  /// Builds what is shown when the future fails.
+  /// Builds what is shown when the future fails. Nothing is shown when left
+  /// out, and debug builds print the error.
   final Widget Function(BuildContext context, Object error)? errorBuilder;
+
+  /// See [Skeleton.skeleton].
+  final Widget? skeleton;
+
+  /// See [Skeleton.reveal].
+  final RevealMode? reveal;
 
   /// See [Skeleton.onReveal].
   final VoidCallback? onReveal;
@@ -374,13 +423,26 @@ class FutureSkeleton<T extends Object> extends StatelessWidget {
         sample: sample,
         id: id,
         label: label,
+        skeleton: skeleton,
+        reveal: reveal,
         onReveal: onReveal,
         error: snapshot.hasError
             ? (errorBuilder?.call(context, snapshot.error!) ??
-                  const SizedBox.shrink())
+                  _silentError(snapshot.error!))
             : null,
         builder: builder,
       ),
     );
   }
+}
+
+Widget _silentError(Object error) {
+  assert(() {
+    debugPrint(
+      'skullet: a FutureSkeleton\'s future failed with no errorBuilder, so '
+      'nothing is shown: $error',
+    );
+    return true;
+  }());
+  return const SizedBox.shrink();
 }

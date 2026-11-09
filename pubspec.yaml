@@ -3,7 +3,7 @@ description: >-
   Skeletons measured from your real Flutter layout: a bar for every line of
   text, a block for every image and control, revealed in place so nothing
   moves. A Flutter port of skullet.
-version: 0.1.0
+version: 0.2.0
 repository: https://github.com/woogi-kang/skullet
 issue_tracker: https://github.com/woogi-kang/skullet/issues
 topics:
@@ -25,6 +25,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  leak_tracker_flutter_testing: any
 
 screenshots:
   - description: A skeleton sweeping into its content.

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
@@ -309,6 +310,8 @@ class RevealLayer extends SingleChildRenderObjectWidget {
   @override
   RenderReveal createRenderObject(BuildContext context) => RenderReveal(
     element: context as Element,
+    screenSize: MediaQuery.maybeSizeOf(context),
+    textDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
     skeleton: skeleton,
     mode: mode,
     revealContext: this.context,
@@ -327,7 +330,9 @@ class RevealLayer extends SingleChildRenderObjectWidget {
       ..colors = colors
       ..onMeasured = onMeasured
       ..onRevealed = onRevealed
-      ..debug = debug;
+      ..debug = debug
+      ..screenSize = MediaQuery.maybeSizeOf(context)
+      ..textDirection = Directionality.maybeOf(context) ?? TextDirection.ltr;
   }
 }
 
@@ -338,6 +343,8 @@ class RenderReveal extends RenderProxyBox with Shimmering {
   /// Creates it.
   RenderReveal({
     required this.element,
+    required this.screenSize,
+    required this.textDirection,
     required this.skeleton,
     required this.mode,
     required this.revealContext,
@@ -373,6 +380,17 @@ class RenderReveal extends RenderProxyBox with Shimmering {
 
   /// See [RevealLayer.debug].
   bool debug;
+
+  /// The size of the view it shows in, from [MediaQuery]; the implicit
+  /// view's when there is none.
+  Size? screenSize;
+
+  /// Which way a sequence reads across.
+  TextDirection textDirection;
+
+  /// The opacity of each piece the cascade mask was last drawn with, in
+  /// sixteenths: the mask is only drawn again when one changes.
+  List<int>? _maskSteps;
 
   _Phase _phase = _Phase.waiting;
   Duration _start = Duration.zero;
@@ -476,9 +494,11 @@ class RenderReveal extends RenderProxyBox with Shimmering {
     var resolved = choose(mode, context);
     final screen = localToGlobal(Offset.zero);
     final view = WidgetsBinding.instance.platformDispatcher.implicitView;
-    final screenSize = view == null
-        ? const Size(1280, 800)
-        : view.physicalSize / view.devicePixelRatio;
+    final screenSize =
+        this.screenSize ??
+        (view == null
+            ? const Size(1280, 800)
+            : view.physicalSize / view.devicePixelRatio);
     if (resolved == RevealMode.sweep) {
       final box = (Offset.zero & size).expandToInclude(
         Offset.zero & skeleton.size,
@@ -504,6 +524,7 @@ class RenderReveal extends RenderProxyBox with Shimmering {
           screenTop: screen.dy,
           screenHeight: screenSize.height,
           byRow: resolved == RevealMode.smart,
+          textDirection: textDirection,
         );
         _length = _cascade!.duration;
       case RevealMode.sweep:
@@ -525,6 +546,7 @@ class RenderReveal extends RenderProxyBox with Shimmering {
     _revealedAt = now;
     _mask?.dispose();
     _mask = null;
+    _maskSteps = null;
     _inLayer.layer = null;
     _glossLayer.layer = null;
     _outLayer.layer = null;
@@ -610,10 +632,6 @@ class RenderReveal extends RenderProxyBox with Shimmering {
 
   void _paintCascade(PaintingContext context, Offset offset, Duration elapsed) {
     final cascade = _cascade!;
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    final bounds = Offset.zero & size;
-    canvas.drawRect(bounds, Paint()..color = const Color(0xFF000000));
     final pieces = <int, Rect>{};
     for (final bone in _content ?? const <Bone>[]) {
       if (bone.kind == BoneKind.surface) continue;
@@ -623,24 +641,44 @@ class RenderReveal extends RenderProxyBox with Shimmering {
         ifAbsent: () => bone.rect,
       );
     }
-    for (final entry in pieces.entries) {
-      final alpha = Cascade.opacityAt(cascade.pieceDelay[entry.key], elapsed);
-      if (alpha >= 1) continue;
+    // Sixteen steps of opacity read as a smooth fade, and let most frames
+    // reuse the mask instead of drawing and uploading a new image.
+    final steps = [
+      for (final key in pieces.keys)
+        (Cascade.opacityAt(cascade.pieceDelay[key], elapsed) * 16).round(),
+    ];
+    final width = math.max(1, size.width.ceil());
+    final height = math.max(1, size.height.ceil());
+    final mask = _mask;
+    if (mask == null ||
+        mask.width != width ||
+        mask.height != height ||
+        !listEquals(steps, _maskSteps)) {
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
       canvas.drawRect(
-        entry.value.inflate(1),
-        Paint()
-          ..blendMode = BlendMode.src
-          ..color = Color.fromRGBO(0, 0, 0, alpha),
+        Offset.zero & size,
+        Paint()..color = const Color(0xFF000000),
       );
+      var i = 0;
+      for (final rect in pieces.values) {
+        final alpha = steps[i++] / 16;
+        if (alpha >= 1) continue;
+        canvas.drawRect(
+          rect.inflate(1),
+          Paint()
+            ..blendMode = BlendMode.src
+            ..color = Color.fromRGBO(0, 0, 0, alpha),
+        );
+      }
+      final picture = recorder.endRecording();
+      final image = picture.toImageSync(width, height);
+      picture.dispose();
+      _mask?.dispose();
+      _mask = image;
+      _maskSteps = steps;
     }
-    final picture = recorder.endRecording();
-    final image = picture.toImageSync(
-      math.max(1, size.width.ceil()),
-      math.max(1, size.height.ceil()),
-    );
-    picture.dispose();
-    _mask?.dispose();
-    _mask = image;
+    final image = _mask!;
     final layer = _maskLayer.layer ??= ShaderMaskLayer();
     layer
       ..shader = ImageShader(
